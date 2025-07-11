@@ -1,68 +1,32 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import axios from 'axios';
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Leaf, 
-  TrendingUp, 
-  MapPin, 
-  Calendar,
-  Droplets,
-  Thermometer,
-  DollarSign,
-  AlertCircle,
-  CheckCircle,
-  Brain
+import {
+  Leaf, MapPin, Calendar, Droplets, Thermometer,
+  DollarSign, AlertCircle, CheckCircle, Brain
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+const SERPER_API_KEY = '1ed76e52b93c255cfe96f4d5a70d4aadd2952696';
 
 const CropPlanning = () => {
   const [soilType, setSoilType] = useState('');
   const [season, setSeason] = useState('');
   const [budget, setBudget] = useState('');
   const [area, setArea] = useState('');
-
-  const cropRecommendations = [
-    {
-      name: 'Wheat',
-      suitability: 92,
-      expectedYield: '45-50 quintal/hectare',
-      profitability: 'High',
-      season: 'Rabi',
-      waterRequirement: 'Medium',
-      marketDemand: 'High',
-      investmentNeeded: '₹35,000/hectare',
-      pros: ['High market demand', 'Government support', 'Good storage life'],
-      cons: ['Water intensive', 'Pest susceptible']
-    },
-    {
-      name: 'Cotton',
-      suitability: 78,
-      expectedYield: '15-20 quintal/hectare',
-      profitability: 'Medium',
-      season: 'Kharif',
-      waterRequirement: 'High',
-      marketDemand: 'Medium',
-      investmentNeeded: '₹45,000/hectare',
-      pros: ['High profit potential', 'Industrial demand', 'Long growing season'],
-      cons: ['High water requirement', 'Pest attacks', 'Price volatility']
-    },
-    {
-      name: 'Tomato',
-      suitability: 85,
-      expectedYield: '400-500 quintal/hectare',
-      profitability: 'High',
-      season: 'Year-round',
-      waterRequirement: 'Medium',
-      marketDemand: 'Very High',
-      investmentNeeded: '₹80,000/hectare',
-      pros: ['Year-round cultivation', 'High demand', 'Quick returns'],
-      cons: ['Disease prone', 'Requires skill', 'Perishable']
-    }
-  ];
+  const [cropRecommendations, setCropRecommendations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const weatherConditions = {
     temperature: '25-30°C',
@@ -86,9 +50,51 @@ const CropPlanning = () => {
     }
   };
 
+  const extractCropNames = (text: string) => {
+    const crops = text.match(/\b(?:rice|wheat|maize|barley|cotton|sugarcane|jute|millet|sorghum|soybean|chickpea|pigeonpea|tomato|potato|onion|mustard)\b/gi);
+    return [...new Set(crops || [])].slice(0, 3);
+  };
+
+  const fetchRecommendations = async () => {
+    setLoading(true);
+    const query = `Best crops for ${season} season in ${soilType} soil within ₹${budget} budget for ${area} hectares`;
+
+    try {
+      const res = await axios.post('https://google.serper.dev/search', {
+        q: query
+      }, {
+        headers: {
+          'X-API-KEY': SERPER_API_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const snippets = res.data.organic.map((item: any) => item.snippet).join(' ');
+      const crops = extractCropNames(snippets);
+
+      const summary = crops.map((crop, index) => ({
+        name: crop.charAt(0).toUpperCase() + crop.slice(1),
+        suitability: 80 - index * 10,
+        expectedYield: 'Based on region',
+        profitability: ['High', 'Medium', 'Low'][index] || 'Medium',
+        season: season,
+        waterRequirement: 'Varies by soil',
+        marketDemand: 'Region-dependent',
+        investmentNeeded: `₹${(+budget / crops.length).toFixed(0)}/hectare`,
+        pros: [`AI search suggests ${crop} is viable for your condition.`],
+        cons: ['Verify with local agriculture office for accuracy.']
+      }));
+
+      setCropRecommendations(summary);
+    } catch (error) {
+      console.error('Serper API Error:', error);
+      alert('Failed to get crop recommendations.');
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
           <h1 className="text-3xl font-bold hero-text">Crop Planning</h1>
@@ -98,13 +104,10 @@ const CropPlanning = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Brain className="h-5 w-5 text-primary" />
-          <Badge variant="outline" className="text-xs">
-            AI Powered
-          </Badge>
+          <Badge variant="outline" className="text-xs">AI Powered</Badge>
         </div>
       </div>
 
-      {/* Input Form */}
       <Card className="agri-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -132,7 +135,6 @@ const CropPlanning = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="season">Season</Label>
               <Select value={season} onValueChange={setSeason}>
@@ -146,37 +148,21 @@ const CropPlanning = () => {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="area">Farm Area (hectares)</Label>
-              <Input 
-                id="area"
-                type="number" 
-                placeholder="5.2"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-              />
+              <Input id="area" type="number" placeholder="5.2" value={area} onChange={(e) => setArea(e.target.value)} />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="budget">Budget (₹)</Label>
-              <Input 
-                id="budget"
-                type="number" 
-                placeholder="200000"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-              />
+              <Input id="budget" type="number" placeholder="200000" value={budget} onChange={(e) => setBudget(e.target.value)} />
             </div>
           </div>
-          
-          <Button className="mt-4 gradient-primary">
-            Get AI Recommendations
+          <Button className="mt-4 gradient-primary" onClick={fetchRecommendations} disabled={loading}>
+            {loading ? 'Fetching...' : 'Get AI Recommendations'}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Weather Conditions */}
       <Card className="agri-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -213,12 +199,11 @@ const CropPlanning = () => {
         </CardContent>
       </Card>
 
-      {/* Crop Recommendations */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">AI Crop Recommendations</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {cropRecommendations.map((crop, index) => (
-            <Card key={crop.name} className="agri-card">
+            <Card key={index} className="agri-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
@@ -232,10 +217,7 @@ const CropPlanning = () => {
                 <CardDescription>
                   Suitability Score: {crop.suitability}%
                 </CardDescription>
-                <Progress 
-                  value={crop.suitability} 
-                  className={`h-2 ${getSuitabilityColor(crop.suitability)}`}
-                />
+                <Progress value={crop.suitability} className={`h-2 ${getSuitabilityColor(crop.suitability)}`} />
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -256,34 +238,30 @@ const CropPlanning = () => {
                     <p className="font-medium">{crop.marketDemand}</p>
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <DollarSign className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">Investment: {crop.investmentNeeded}</span>
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-green-400">Advantages:</p>
-                  {crop.pros.map((pro, i) => (
+                  {crop.pros.map((pro: string, i: number) => (
                     <div key={i} className="flex items-center space-x-2 text-sm">
                       <CheckCircle className="h-3 w-3 text-green-400" />
                       <span className="text-muted-foreground">{pro}</span>
                     </div>
                   ))}
                 </div>
-
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-yellow-400">Considerations:</p>
-                  {crop.cons.map((con, i) => (
+                  {crop.cons.map((con: string, i: number) => (
                     <div key={i} className="flex items-center space-x-2 text-sm">
                       <AlertCircle className="h-3 w-3 text-yellow-400" />
                       <span className="text-muted-foreground">{con}</span>
                     </div>
                   ))}
                 </div>
-
                 <Button className="w-full gradient-primary">
                   Select This Crop
                 </Button>
