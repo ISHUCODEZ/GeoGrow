@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ import weatherSatelliteImage from '@/assets/weather-satellite.jpg';
 import farmerTechImage from '@/assets/farmer-tech.jpg';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  
   const [weatherData, setWeatherData] = useState({
     temperature: '28°C',
     humidity: '65%',
@@ -64,21 +67,24 @@ const Dashboard = () => {
       description: 'Upload plant image for AI diagnosis',
       icon: Camera,
       action: 'diagnosis',
-      image: cropDiagnosisImage
+      image: cropDiagnosisImage,
+      route: '/crop-health'
     },
     {
       title: 'Weather Forecast',
       description: '7-day satellite weather data',
       icon: CloudSun,
       action: 'weather',
-      image: weatherSatelliteImage
+      image: weatherSatelliteImage,
+      route: '/weather'
     },
     {
       title: 'Market Prices',
       description: 'Current mandi rates & trends',
       icon: DollarSign,
       action: 'market',
-      image: farmerTechImage
+      image: farmerTechImage,
+      route: '/crop-planning'
     }
   ];
 
@@ -176,7 +182,7 @@ const Dashboard = () => {
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
-                <div key={action.action} className="relative group">
+                <div key={action.action} className="relative group cursor-pointer" onClick={() => navigate(action.route)}>
                   <div 
                     className="relative h-48 rounded-xl overflow-hidden bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
                     style={{ backgroundImage: `url(${action.image})` }}
@@ -256,7 +262,7 @@ const Dashboard = () => {
                 <p className="text-lg font-medium text-primary">{weatherData.condition}</p>
               </div>
             </div>
-            <Button className="w-full mt-4 gradient-accent">
+            <Button className="w-full mt-4 gradient-accent" onClick={() => navigate('/weather')}>
               View 7-Day Forecast
             </Button>
           </CardContent>
