@@ -1,34 +1,19 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  MessageSquare, 
-  Phone, 
-  Mail, 
+import {
+  MessageSquare,
+  Phone,
   Clock,
   Star,
-  Send,
-  Mic,
-  Camera,
   Bot,
-  User,
   Languages,
   Headphones
 } from 'lucide-react';
-import farmerTechImage from '@/assets/farmer-tech.jpg';
-import { aiService, ChatMessage } from '@/services/aiService';
-import { smsService } from '@/services/smsService';
-import { useToast } from '@/hooks/use-toast';
 
 const Advisory = () => {
-  const [message, setMessage] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('english');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const advisoryServices = [
     {
@@ -36,21 +21,12 @@ const Advisory = () => {
       description: 'Get instant answers to your farming questions',
       icon: Bot,
       features: ['24/7 availability', 'Multi-language support', 'Crop-specific advice'],
-      action: 'chat'
     },
     {
       title: 'Voice Advisory',
       description: 'Call our agricultural experts directly',
       icon: Phone,
       features: ['Expert consultation', 'Regional language support', 'Emergency advice'],
-      action: 'call'
-    },
-    {
-      title: 'SMS Alerts',
-      description: 'Receive farming tips via SMS',
-      icon: MessageSquare,
-      features: ['Weather alerts', 'Crop calendar', 'Market prices'],
-      action: 'sms'
     }
   ];
 
@@ -74,7 +50,7 @@ const Advisory = () => {
     {
       id: 3,
       question: 'Soil testing procedure and cost?',
-      answer: 'Contact your nearest KVK or agricultural department. Cost is ₹50-200. Tests for pH, NPK, organic matter, and micronutrients.',
+      answer: 'Contact your nearest KVK or agricultural department. Cost is ₹50–200. Tests for pH, NPK, organic matter, and micronutrients.',
       time: '2 days ago',
       rating: 5,
       expert: 'Prof. Sunita Devi'
@@ -108,50 +84,6 @@ const Advisory = () => {
     }
   ];
 
-  const languages = [
-    { code: 'english', name: 'English', native: 'English' },
-    { code: 'hindi', name: 'Hindi', native: 'हिंदी' },
-    { code: 'marathi', name: 'Marathi', native: 'मराठी' },
-    { code: 'gujarati', name: 'Gujarati', native: 'ગુજરાતી' },
-    { code: 'punjabi', name: 'Punjabi', native: 'ਪੰਜਾਬੀ' }
-  ];
-
-  const handleSendMessage = async () => {
-    if (message.trim() && !loading) {
-      const userMessage: ChatMessage = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: message,
-        timestamp: new Date(),
-        language: selectedLanguage
-      };
-
-      setChatMessages(prev => [...prev, userMessage]);
-      setMessage('');
-      setLoading(true);
-
-      try {
-        const response = await aiService.sendChatMessage(message, selectedLanguage);
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'assistant',
-          content: response,
-          timestamp: new Date(),
-          language: selectedLanguage
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
-      } catch (error) {
-        toast({
-          title: "AI Assistant Error",
-          description: "Failed to get response. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -159,7 +91,7 @@ const Advisory = () => {
         <div>
           <h1 className="text-3xl font-bold hero-text">AI Advisory</h1>
           <p className="text-muted-foreground mt-1">
-            Get expert agricultural advice through AI, voice calls, and SMS
+            Get expert agricultural advice through AI and voice calls
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -170,86 +102,35 @@ const Advisory = () => {
         </div>
       </div>
 
-      {/* AI Chat Interface */}
+      {/* Botpress AI Chat Assistant */}
       <Card className="agri-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Bot className="h-5 w-5" />
-            <span>AI Chat Assistant</span>
+            <span>AI Chat Assistant AgriSmart</span>
           </CardTitle>
           <CardDescription>
-            Ask any farming question and get instant AI-powered answers
+            Ask any farming question and get instant AI-powered answers via Botpress
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Language Selection */}
-            <div className="flex items-center space-x-2 mb-4">
-              <Languages className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Language:</span>
-              <div className="flex flex-wrap gap-2">
-                {languages.map((lang) => (
-                  <Button
-                    key={lang.code}
-                    variant={selectedLanguage === lang.code ? "default" : "outline"}
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => setSelectedLanguage(lang.code)}
-                  >
-                    {lang.native}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Chat Interface */}
-            <div className="bg-secondary/30 rounded-lg p-4 min-h-[300px] space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <div className="flex-1 bg-card rounded-lg p-3">
-                  <p className="text-sm">
-                    Namaste! 🙏 I'm your AI farming assistant. Ask me anything about crops, weather, diseases, or farming techniques. 
-                    I can help you in multiple languages!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Input Area */}
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative">
-                <Textarea
-                  placeholder={`Ask your farming question in ${languages.find(l => l.code === selectedLanguage)?.native}...`}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-[60px] pr-20"
-                />
-                <div className="absolute right-2 bottom-2 flex space-x-2">
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <Button 
-                onClick={handleSendMessage} 
-                className="gradient-primary h-[60px] px-6"
-                disabled={!message.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+        <CardContent className="p-0" style={{ height: '400px' }}>
+          <iframe
+            title="Botpress Chatbot"
+            src="https://cdn.botpress.cloud/webchat/v3.2/shareable.html?configUrl=https://files.bpcontent.cloud/2025/07/11/07/20250711075010-F5LLG51T.json"
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              borderRadius: '0 0 8px 8px',
+            }}
+            allow="microphone; camera"
+          />
         </CardContent>
       </Card>
 
       {/* Advisory Services */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {advisoryServices.map((service, index) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {advisoryServices.map((service) => {
           const Icon = service.icon;
           return (
             <Card key={service.title} className="agri-card">
@@ -268,14 +149,12 @@ const Advisory = () => {
                 <div className="space-y-2">
                   {service.features.map((feature, i) => (
                     <div key={i} className="flex items-center space-x-2 text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       <span className="text-muted-foreground">{feature}</span>
                     </div>
                   ))}
                 </div>
-                <Button className="w-full gradient-primary">
-                  Try Now
-                </Button>
+                <Button className="w-full gradient-primary">Try Now</Button>
               </CardContent>
             </Card>
           );
@@ -294,12 +173,16 @@ const Advisory = () => {
             <CardDescription>Connect with agricultural experts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {experts.map((expert, index) => (
+            {experts.map((expert) => (
               <div key={expert.name} className="p-4 rounded-lg bg-secondary/50">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold">{expert.name}</h4>
-                  <Badge 
-                    className={expert.available ? 'text-green-400 bg-green-400/20' : 'text-red-400 bg-red-400/20'}
+                  <Badge
+                    className={
+                      expert.available
+                        ? 'text-green-400 bg-green-400/20'
+                        : 'text-red-400 bg-red-400/20'
+                    }
                   >
                     {expert.available ? 'Available' : 'Busy'}
                   </Badge>
@@ -319,12 +202,10 @@ const Advisory = () => {
                     <Star className="h-4 w-4 text-yellow-400 fill-current" />
                     <span className="text-sm font-medium">{expert.rating}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {expert.languages.join(', ')}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{expert.languages.join(', ')}</div>
                 </div>
-                <Button 
-                  className="w-full mt-3 gradient-accent" 
+                <Button
+                  className="w-full mt-3 gradient-accent"
                   size="sm"
                   disabled={!expert.available}
                 >
@@ -352,9 +233,11 @@ const Advisory = () => {
                   <h4 className="font-medium text-sm">{query.question}</h4>
                   <div className="flex items-center space-x-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`h-3 w-3 ${i < query.rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground'}`} 
+                      <Star
+                        key={i}
+                        className={`h-3 w-3 ${
+                          i < query.rating ? 'text-yellow-400 fill-current' : 'text-muted-foreground'
+                        }`}
                       />
                     ))}
                   </div>
