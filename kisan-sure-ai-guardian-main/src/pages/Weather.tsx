@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   CloudSun, 
   Droplets, 
@@ -25,10 +27,10 @@ import { useLocation } from '@/hooks/useLocation';
 import { useToast } from '@/hooks/use-toast';
 
 const Weather = () => {
+  const navigate = useNavigate();
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [satelliteData, setSatelliteData] = useState<SatelliteData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState([
     {
       id: 1,
@@ -46,31 +48,23 @@ const Weather = () => {
     }
   ]);
 
-  const { location } = useLocation();
+  const { location, loading, error, setLocationByPlaceName, useGPSLocation: gpsLocation } = useLocation();
+  const [manualMode, setManualMode] = useState(false);
+  const [placeName, setPlaceName] = useState('');
+  const [usingManual, setUsingManual] = useState(false);
+
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (location) {
-      loadWeatherData();
-      loadSatelliteData();
-    }
-  }, [location]);
-
-  const loadWeatherData = async () => {
+  const loadWeatherData = useCallback(async () => {
     try {
-      setLoading(true);
       const lat = location?.latitude || 18.5204;
       const lon = location?.longitude || 73.8567;
-      
       const [weatherData, forecastData] = await Promise.all([
         weatherService.getCurrentWeather(lat, lon),
         weatherService.getWeatherForecast(lat, lon)
       ]);
-      
       setCurrentWeather(weatherData);
       setForecast(forecastData);
-      
-      // Send SMS alert for severe weather
       if (forecastData.some(day => day.rain > 80)) {
         await smsService.sendWeatherAlert({
           temperature: weatherData.temperature,
@@ -86,12 +80,10 @@ const Weather = () => {
         description: "Using cached weather data. Please try refreshing.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [location, toast]);
 
-  const loadSatelliteData = async () => {
+  const loadSatelliteData = useCallback(async () => {
     try {
       const lat = location?.latitude || 18.5204;
       const lon = location?.longitude || 73.8567;
@@ -100,7 +92,14 @@ const Weather = () => {
     } catch (error) {
       console.error('Satellite data loading error:', error);
     }
-  };
+  }, [location]);
+
+  useEffect(() => {
+    if (location) {
+      loadWeatherData();
+      loadSatelliteData();
+    }
+  }, [location, loadWeatherData, loadSatelliteData]);
 
   const handleRefresh = () => {
     if (location) {
@@ -111,6 +110,24 @@ const Weather = () => {
         description: "Getting latest weather and satellite information..."
       });
     }
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!placeName.trim()) {
+      toast({ title: 'Error', description: 'Please enter a place name.', variant: 'destructive' });
+      return;
+    }
+    setUsingManual(true);
+    await setLocationByPlaceName(placeName.trim());
+    setManualMode(false);
+  };
+
+  const handleUseAuto = () => {
+    setUsingManual(false);
+    setPlaceName('');
+    setManualMode(false);
+    gpsLocation();
   };
 
   const getAlertColor = (type: string) => {
@@ -141,17 +158,32 @@ const Weather = () => {
             <Satellite className="h-3 w-3 mr-1" />
             Live Data
           </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="ml-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button size="sm" variant="outline" onClick={() => setManualMode((m) => !m)} className="ml-2">
+            {manualMode ? 'Cancel' : 'Enter Place Name'}
           </Button>
+          {usingManual && (
+            <Button size="sm" variant="secondary" className="ml-2" onClick={handleUseAuto}>
+              Use My Location
+            </Button>
+          )}
         </div>
       </div>
+      {manualMode && (
+        <form className="my-4 flex flex-col md:flex-row items-center gap-2" onSubmit={handleManualSubmit}>
+          <Input
+            type="text"
+            placeholder="Enter place name (e.g. Pune, Maharashtra)"
+            value={placeName}
+            onChange={e => setPlaceName(e.target.value)}
+            className="w-64"
+            required
+          />
+          <Button type="submit" size="sm" className="ml-2">Set Location</Button>
+        </form>
+      )}
+      {error && (
+        <div className="my-4 text-center text-red-500">{error.message}</div>
+      )}
 
       {/* Current Weather */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -334,7 +366,15 @@ const Weather = () => {
             </div>
           ))}
           
-          <Button className="w-full gradient-primary">
+          <Button 
+            className="w-full gradient-primary"
+            onClick={() => {
+              toast({
+                title: "Weather Alerts",
+                description: "Custom weather alert settings will be available soon!",
+              });
+            }}
+          >
             Set Custom Weather Alerts
           </Button>
         </CardContent>
