@@ -4,18 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
   ShieldCheck, 
   DollarSign, 
   FileText, 
-  Calendar,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  User,
-  Smartphone
+  Smartphone,
+  CheckCircle
 } from 'lucide-react';
 
 const Insurance = () => {
@@ -31,7 +25,8 @@ const Insurance = () => {
       maxClaim: '₹50,000/hectare',
       features: ['Weather-based claims', 'Satellite monitoring', 'Quick settlement'],
       eligibility: 'All farmers',
-      status: 'Available'
+      status: 'Available',
+      link: 'https://pmfby.gov.in/'
     },
     {
       name: 'Weather Based Crop Insurance',
@@ -40,7 +35,8 @@ const Insurance = () => {
       maxClaim: '₹35,000/hectare',
       features: ['Automated claims', 'No crop cutting', 'Fast payout'],
       eligibility: 'Kharif crops',
-      status: 'Available'
+      status: 'Available',
+      link: 'https://www.aicofindia.com/'
     },
     {
       name: 'Coconut Palm Insurance Scheme',
@@ -49,7 +45,8 @@ const Insurance = () => {
       maxClaim: '₹9,000/tree',
       features: ['Natural disasters', 'Disease coverage', '3-year validity'],
       eligibility: 'Coconut farmers',
-      status: 'Seasonal'
+      status: 'Seasonal',
+      link: 'https://www.kerala.gov.in/documents/10180/46696/Coconut%20Palm%20Insurance%20Scheme'
     }
   ];
 
@@ -80,14 +77,16 @@ const Insurance = () => {
       amount: 'Up to ₹3,00,000',
       interest: '7% per annum',
       tenure: '5 years',
-      features: ['No processing fee', 'Flexible repayment', 'Crop loan + insurance']
+      features: ['No processing fee', 'Flexible repayment', 'Crop loan + insurance'],
+      link: 'https://www.pmkisan.gov.in/KisanCreditCard.aspx'
     },
     {
       name: 'Mudra Loan - Tarun',
       amount: 'Up to ₹10,00,000',
       interest: '8.5% per annum',
       tenure: '3 years',
-      features: ['Quick approval', 'Minimal documentation', 'Business expansion']
+      features: ['Quick approval', 'Minimal documentation', 'Business expansion'],
+      link: 'https://www.mudra.org.in/'
     }
   ];
 
@@ -180,12 +179,12 @@ const Insurance = () => {
             </div>
           </div>
           
-            <Button 
-              className="mt-4 gradient-primary"
-              onClick={() => window.open('https://pmfby.gov.in/', '_blank')}
-            >
-              Apply for Insurance
-            </Button>
+          <Button 
+            className="mt-4 gradient-primary"
+            onClick={() => window.open('https://pmfby.gov.in/', '_blank')}
+          >
+            Apply for Insurance
+          </Button>
         </CardContent>
       </Card>
 
@@ -193,7 +192,7 @@ const Insurance = () => {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Available Insurance Schemes</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {insuranceSchemes.map((scheme, index) => (
+          {insuranceSchemes.map((scheme) => (
             <Card key={scheme.name} className="agri-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -230,7 +229,11 @@ const Insurance = () => {
                   <p className="text-xs text-muted-foreground">Eligibility: {scheme.eligibility}</p>
                 </div>
 
-                <Button className="w-full gradient-primary" size="sm">
+                <Button 
+                  className="w-full gradient-primary"
+                  size="sm"
+                  onClick={() => window.open(scheme.link, '_blank')}
+                >
                   Learn More
                 </Button>
               </CardContent>
@@ -280,8 +283,10 @@ const Insurance = () => {
                 <p className="text-xs text-muted-foreground">Reason: {claim.reason}</p>
               </div>
             ))}
-            
-            <Button className="w-full gradient-accent">
+            <Button 
+              className="w-full gradient-accent"
+              onClick={() => window.open('https://pmfby.gov.in/farmerRegistrationForm', '_blank')}
+            >
               File New Claim
             </Button>
           </CardContent>
@@ -297,7 +302,7 @@ const Insurance = () => {
             <CardDescription>Access credit facilities for your farm</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {microfinanceOptions.map((option, index) => (
+            {microfinanceOptions.map((option) => (
               <div key={option.name} className="p-4 rounded-lg bg-secondary/50 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold">{option.name}</h4>
@@ -325,7 +330,11 @@ const Insurance = () => {
                     </div>
                   ))}
                 </div>
-                <Button className="w-full gradient-earth" size="sm">
+                <Button 
+                  className="w-full gradient-earth" 
+                  size="sm"
+                  onClick={() => window.open(option.link, '_blank')}
+                >
                   Apply Now
                 </Button>
               </div>
