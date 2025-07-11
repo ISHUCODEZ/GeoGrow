@@ -464,3 +464,38 @@ const CropHealth = () => {
 };
 
 export default CropHealth; 
+
+
+
+
+{/* Future Enhancements */}
+<Card className="agri-card">
+  <CardHeader>
+    <CardTitle className="flex items-center space-x-2">
+      <RotateCcw className="h-5 w-5" />
+      <span>Future Enhancements</span>
+    </CardTitle>
+    <CardDescription>
+      Expanding crop health analysis with drone-based automation
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="space-y-4 text-sm text-muted-foreground">
+    <ul className="list-disc pl-5 space-y-2">
+      <li>
+        <span className="font-medium text-foreground">Drone-Based Disease Detection:</span> 
+        Integrating drone cameras with our CNN model to perform real-time aerial diagnosis across large fields.
+      </li>
+      <li>
+        <span className="font-medium text-foreground">Automated Pesticide Spraying:</span> 
+        Using disease location mapping, drones will automatically spray targeted areas, reducing chemical usage and cost.
+      </li>
+      <li>
+        <span className="font-medium text-foreground">Smart Irrigation with Drones:</span> 
+        Leveraging NDVI & thermal imaging, drones can monitor soil moisture and water crops where needed.
+      </li>
+    </ul>
+    <p className="text-xs text-muted-foreground pt-2">
+      These AI-powered drone capabilities will help scale precision farming, reduce manual labor, and improve yield sustainability.
+    </p>
+  </CardContent>
+</Card>
