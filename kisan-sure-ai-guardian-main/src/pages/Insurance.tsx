@@ -4,13 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  ShieldCheck, 
-  DollarSign, 
-  FileText, 
-  Smartphone,
-  CheckCircle
-} from 'lucide-react';
+import { ShieldCheck, DollarSign, FileText, Smartphone, CheckCircle } from 'lucide-react';
 
 const Insurance = () => {
   const [cropArea, setCropArea] = useState('');
@@ -61,7 +55,7 @@ const Insurance = () => {
       date: '15 Oct 2024'
     },
     {
-      id: 'CL002', 
+      id: 'CL002',
       crop: 'Cotton',
       area: '1.8 hectares',
       reason: 'Drought conditions',
@@ -90,7 +84,7 @@ const Insurance = () => {
     }
   ];
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'Approved': return 'text-green-400 bg-green-400/20';
       case 'Under Review': return 'text-yellow-400 bg-yellow-400/20';
@@ -101,94 +95,71 @@ const Insurance = () => {
     }
   };
 
+  const area = parseFloat(cropArea) || 0;
+  const premiumRate = 2500;
+  const maxClaimPerHectare = 50000;
+  const estimatedPremium = area * premiumRate;
+  const maxCoverage = area * maxClaimPerHectare;
+  const savingsPercent = 25;
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
           <h1 className="text-3xl font-bold hero-text">Insurance & Finance</h1>
-          <p className="text-muted-foreground mt-1">
-            Secure your crops and access financial assistance with AI-powered recommendations
-          </p>
+          <p className="text-muted-foreground mt-1">Secure your crops and access financial assistance</p>
         </div>
         <div className="flex items-center space-x-2">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          <Badge variant="outline" className="text-xs">
-            Government Backed
-          </Badge>
+          <Badge variant="outline" className="text-xs">Government Backed</Badge>
         </div>
       </div>
 
-      {/* Quick Calculator */}
       <Card className="agri-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <DollarSign className="h-5 w-5" />
             <span>Insurance Premium Calculator</span>
           </CardTitle>
-          <CardDescription>
-            Calculate your insurance premium and coverage amount
-          </CardDescription>
+          <CardDescription>Calculate your premium (based on PMFBY)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor="crop-area">Farm Area (hectares)</Label>
-              <Input 
-                id="crop-area"
-                type="number" 
-                placeholder="5.2"
-                value={cropArea}
-                onChange={(e) => setCropArea(e.target.value)}
-              />
+              <Input id="crop-area" type="number" placeholder="5.2" value={cropArea} onChange={(e) => setCropArea(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="crop-type">Crop Type</Label>
-              <Input 
-                id="crop-type"
-                type="text" 
-                placeholder="Wheat"
-                value={cropType}
-                onChange={(e) => setCropType(e.target.value)}
-              />
+              <Input id="crop-type" type="text" placeholder="Wheat" value={cropType} onChange={(e) => setCropType(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="expected-yield">Expected Yield (quintal)</Label>
-              <Input 
-                id="expected-yield"
-                type="number" 
-                placeholder="250"
-                value={expectedYield}
-                onChange={(e) => setExpectedYield(e.target.value)}
-              />
+              <Input id="expected-yield" type="number" placeholder="250" value={expectedYield} onChange={(e) => setExpectedYield(e.target.value)} />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-secondary/50 rounded-lg">
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Estimated Premium</p>
-              <p className="text-2xl font-bold text-primary">₹12,500</p>
+              <p className="text-2xl font-bold text-primary">₹{estimatedPremium.toLocaleString()}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Maximum Coverage</p>
-              <p className="text-2xl font-bold text-primary">₹2,50,000</p>
+              <p className="text-2xl font-bold text-primary">₹{maxCoverage.toLocaleString()}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Savings vs Market</p>
-              <p className="text-2xl font-bold text-agri-lime">25%</p>
+              <p className="text-2xl font-bold text-agri-lime">{savingsPercent}%</p>
             </div>
           </div>
-          
-          <Button 
-            className="mt-4 gradient-primary"
-            onClick={() => window.open('https://pmfby.gov.in/', '_blank')}
-          >
+
+          <Button className="mt-4 gradient-primary" onClick={() => window.open('https://pmfby.gov.in/', '_blank')}>
             Apply for Insurance
           </Button>
         </CardContent>
       </Card>
 
-      {/* Insurance Schemes */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Available Insurance Schemes</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -197,9 +168,7 @@ const Insurance = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{scheme.name}</CardTitle>
-                  <Badge className={getStatusColor(scheme.status)}>
-                    {scheme.status}
-                  </Badge>
+                  <Badge className={getStatusColor(scheme.status)}>{scheme.status}</Badge>
                 </div>
                 <CardDescription>{scheme.coverage} Coverage</CardDescription>
               </CardHeader>
@@ -214,7 +183,6 @@ const Insurance = () => {
                     <p className="font-semibold text-primary">{scheme.maxClaim}</p>
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Key Features:</p>
                   {scheme.features.map((feature, i) => (
@@ -224,16 +192,10 @@ const Insurance = () => {
                     </div>
                   ))}
                 </div>
-
                 <div className="pt-2 border-t border-border/50">
                   <p className="text-xs text-muted-foreground">Eligibility: {scheme.eligibility}</p>
                 </div>
-
-                <Button 
-                  className="w-full gradient-primary"
-                  size="sm"
-                  onClick={() => window.open(scheme.link, '_blank')}
-                >
+                <Button className="w-full gradient-primary" size="sm" onClick={() => window.open(scheme.link, '_blank')}>
                   Learn More
                 </Button>
               </CardContent>
@@ -242,9 +204,7 @@ const Insurance = () => {
         </div>
       </div>
 
-      {/* Claims & Microfinance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Claims */}
         <Card className="agri-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -258,9 +218,7 @@ const Insurance = () => {
               <div key={claim.id} className="p-4 rounded-lg bg-secondary/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{claim.id}</span>
-                  <Badge className={getStatusColor(claim.status)}>
-                    {claim.status}
-                  </Badge>
+                  <Badge className={getStatusColor(claim.status)}>{claim.status}</Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
@@ -283,16 +241,12 @@ const Insurance = () => {
                 <p className="text-xs text-muted-foreground">Reason: {claim.reason}</p>
               </div>
             ))}
-            <Button 
-              className="w-full gradient-accent"
-              onClick={() => window.open('https://pmfby.gov.in/farmerRegistrationForm', '_blank')}
-            >
+            <Button className="w-full gradient-accent" onClick={() => window.open('https://pmfby.gov.in/farmerRegistrationForm', '_blank')}>
               File New Claim
             </Button>
           </CardContent>
         </Card>
 
-        {/* Microfinance Options */}
         <Card className="agri-card">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -330,11 +284,7 @@ const Insurance = () => {
                     </div>
                   ))}
                 </div>
-                <Button 
-                  className="w-full gradient-earth" 
-                  size="sm"
-                  onClick={() => window.open(option.link, '_blank')}
-                >
+                <Button className="w-full gradient-earth" size="sm" onClick={() => window.open(option.link, '_blank')}>
                   Apply Now
                 </Button>
               </div>
