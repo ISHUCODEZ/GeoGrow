@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import CropPlanning from "./pages/CropPlanning";
 import Weather from "./pages/Weather";
 import Insurance from "./pages/Insurance";
 import Advisory from "./pages/Advisory";
+import CropHealth from "./pages/CropHealth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,7 @@ const App = () => (
               <Route path="/weather" element={<Weather />} />
               <Route path="/insurance" element={<Insurance />} />
               <Route path="/advisory" element={<Advisory />} />
+              <Route path="/crop-health" element={<CropHealth />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
