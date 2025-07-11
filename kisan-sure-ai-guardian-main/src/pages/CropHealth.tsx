@@ -287,6 +287,9 @@ const CropHealth = () => {
                 </>
               )}
             </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              <span className="font-semibold">Note:</span> Disease detection is powered by a Convolutional Neural Network (CNN) model.
+            </p>
 
             {/* Supported Crops */}
             <div className="mt-4">
@@ -457,6 +460,32 @@ const CropHealth = () => {
               </ul>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Future Features Section */}
+      <Card className="agri-card border-2 border-dashed border-blue-500 mt-8 bg-transparent backdrop-blur-sm shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Info className="h-5 w-5 text-white" />
+            <span className="text-white font-bold">Future Features (Coming Soon)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="list-disc pl-5 space-y-2 text-white font-semibold text-base md:text-lg">
+            <li>
+              <span className="font-bold">Drone-based Disease Detection:</span> <span className="font-medium">Detect crop diseases over large fields using drone imagery and AI for faster, large-scale monitoring.</span>
+            </li>
+            <li>
+              <span className="font-bold">Automated Pesticide Spraying:</span> <span className="font-medium">Use drones to precisely spray pesticides only where needed, reducing chemical use and improving crop health.</span>
+            </li>
+            <li>
+              <span className="font-bold">Smart Plant Watering:</span> <span className="font-medium">Enable drones to water plants based on real-time crop health and soil moisture data, optimizing water usage.</span>
+            </li>
+          </ul>
+          <p className="mt-4 text-sm md:text-base font-semibold text-white">
+            These features are under development and will be available in future updates to further empower farmers with advanced drone technology.
+          </p>
         </CardContent>
       </Card>
     </div>
