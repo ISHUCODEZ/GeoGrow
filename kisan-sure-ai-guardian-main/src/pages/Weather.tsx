@@ -1,329 +1,122 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Leaf, 
-  TrendingUp, 
-  AlertTriangle, 
   CloudSun, 
-  ShieldCheck,
-  Calendar,
+  Droplets, 
+  Wind, 
+  Thermometer,
+  Eye,
+  Sunrise,
+  Sunset,
   MapPin,
-  Camera,
-  DollarSign,
-  Users
+  Calendar,
+  Satellite,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
-import cropDiagnosisImage from '@/assets/crop-diagnosis.jpg';
-import weatherSatelliteImage from '@/assets/weather-satellite.jpg';
-import farmerTechImage from '@/assets/farmer-tech.jpg';
-import { satelliteService } from '@/services/satelliteService';
-import { weatherService, ForecastDay } from '@/services/weatherService';
+import { weatherService, WeatherData, ForecastDay } from '@/services/weatherService';
+import { satelliteService, SatelliteData } from '@/services/satelliteService';
+import { smsService } from '@/services/smsService';
+import { useLocation } from '@/hooks/useLocation';
+import { useToast } from '@/hooks/use-toast';
 
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const [weatherData, setWeatherData] = useState({
-    temperature: '28°C',
-    humidity: '65%',
-    rainfall: '12mm',
-    condition: 'Partly Cloudy'
-  });
-
-  const [farmData, setFarmData] = useState({
-    totalArea: '5.2 hectares',
-    currentCrops: 3,
-    healthScore: 85,
-    yieldPrediction: '+23%'
-  });
-
-  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [manualMode, setManualMode] = useState(false);
-  const [placeName, setPlaceName] = useState('');
-  const [usingManual, setUsingManual] = useState(false);
+const Weather = () => {
+  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
-  const [satelliteData, setSatelliteData] = useState(null);
-  const [recentAlerts, setRecentAlerts] = useState([]);
-
-  const quickActions = [
+  const [satelliteData, setSatelliteData] = useState<SatelliteData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [alerts] = useState([
     {
-      title: 'Crop Health Check',
-      description: 'Upload plant image for AI diagnosis',
-      icon: Camera,
-      action: 'diagnosis',
-      image: cropDiagnosisImage,
-      path: '/crop-planning'
+      id: 1,
+      type: 'warning',
+      title: 'Heavy Rainfall Alert',
+      message: 'Heavy rainfall expected in next 48 hours. Protect your crops from waterlogging.',
+      validUntil: '2 days'
     },
     {
-      title: 'Weather Forecast',
-      description: '7-day satellite weather data',
-      icon: CloudSun,
-      action: 'weather',
-      image: weatherSatelliteImage,
-      path: '/weather'
-    },
-    {
-      title: 'Market Prices',
-      description: 'Current mandi rates & trends',
-      icon: DollarSign,
-      action: 'market',
-      image: farmerTechImage,
-      path: '/advisory'
+      id: 2,
+      type: 'info',
+      title: 'Optimal Irrigation Time',
+      message: 'Good time to reduce irrigation as natural rainfall is expected.',
+      validUntil: '5 days'
     }
-  ];
+  ]);
 
-  const DEFAULT_LOCATION = { lat: 18.5204, lon: 73.8567 }; // Pune, Maharashtra
+  const { location } = useLocation();
+  const { toast } = useToast();
 
-  // Remove the real-time weather API effect
-  // Restore simulated/random weather data in fetchData
-  const fetchData = async (lat: number, lon: number) => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    if (location) {
+      loadWeatherData();
+      loadSatelliteData();
+    }
+  }, [location]);
+
+  const loadWeatherData = async () => {
     try {
-      const satellite = await satelliteService.getSatelliteData(lat, lon);
-      setFarmData({
-        totalArea: `${satellite.geospatialAnalysis.fieldBoundaries.reduce((sum, f) => sum + f.area, 0).toFixed(2)} hectares`,
-        currentCrops: satellite.geospatialAnalysis.cropClassification.length,
-        healthScore: satellite.geospatialAnalysis.healthAnalysis.overallHealth,
-        yieldPrediction: `+${(satellite.vegetationIndex * 100).toFixed(0)}%`
-      });
-      setWeatherData({
-        temperature: `${(25 + Math.random() * 10).toFixed(1)}°C`,
-        humidity: `${(60 + Math.random() * 20).toFixed(0)}%`,
-        rainfall: `${(10 + Math.random() * 10).toFixed(1)}mm`,
-        condition: 'Live Data'
-      });
-    } catch (err) {
-      setError('Failed to fetch live satellite or weather data. Showing default values.');
-      setFarmData({
-        totalArea: '5.2 hectares',
-        currentCrops: 3,
-        healthScore: 85,
-        yieldPrediction: '+23%'
-      });
-      setWeatherData({
-        temperature: '28°C',
-        humidity: '65%',
-        rainfall: '12mm',
-        condition: 'Partly Cloudy'
+      setLoading(true);
+      const lat = location?.latitude || 22.5726; // default Kolkata
+      const lon = location?.longitude || 88.3639;
+
+      const [weatherData, forecastData] = await Promise.all([
+        weatherService.getCurrentWeather(lat, lon),
+        weatherService.getWeatherForecast(lat, lon)
+      ]);
+
+      setCurrentWeather(weatherData);
+      setForecast(forecastData);
+
+      if (forecastData.some(day => day.rain > 80)) {
+        await smsService.sendWeatherAlert({
+          temperature: weatherData.temperature,
+          condition: weatherData.condition,
+          humidity: weatherData.humidity,
+          rainChance: Math.max(...forecastData.map(d => d.rain))
+        });
+      }
+    } catch (error) {
+      console.error('Weather data loading error:', error);
+      toast({
+        title: "Weather Update Failed",
+        description: "Using cached weather data. Please try refreshing.",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Geocode place name to coordinates
-  const geocodePlace = async (name: string): Promise<{ lat: number; lon: number } | null> => {
+  const loadSatelliteData = async () => {
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name)}`);
-      const data = await response.json();
-      if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-      }
-      return null;
-    } catch {
-      return null;
+      const lat = location?.latitude || 22.5726;
+      const lon = location?.longitude || 88.3639;
+      const data = await satelliteService.getSatelliteData(lat, lon);
+      setSatelliteData(data);
+    } catch (error) {
+      console.error('Satellite data loading error:', error);
     }
   };
 
-  // Handle manual place submit
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!placeName.trim()) {
-      setError('Please enter a place name.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const coords = await geocodePlace(placeName.trim());
-    if (!coords) {
-      setError('Place not found. Please try another name.');
-      setLoading(false);
-      return;
-    }
-    setLocation(coords);
-    setUsingManual(true);
-    setManualMode(false);
-    fetchData(coords.lat, coords.lon);
-  };
-
-  // Switch back to automatic location
-  const handleUseAuto = () => {
-    setUsingManual(false);
-    setPlaceName('');
-    setManualMode(false);
-    setLoading(true);
-    setError(null);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          if (
-            !lat || !lon ||
-            lat < -90 || lat > 90 ||
-            lon < -180 || lon > 180
-          ) {
-            setLocation(DEFAULT_LOCATION);
-            fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-          } else {
-            setLocation({ lat, lon });
-            fetchData(lat, lon);
-          }
-        },
-        () => {
-          setError('Unable to access your location. Showing default location.');
-          setLocation(DEFAULT_LOCATION);
-          fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-        }
-      );
-    } else {
-      setError('Geolocation is not supported by your browser. Showing default location.');
-      setLocation(DEFAULT_LOCATION);
-      fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-    }
-  };
-
-  useEffect(() => {
-    if (!usingManual) {
-      setLoading(true);
-      setError(null);
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            if (
-              !lat || !lon ||
-              lat < -90 || lat > 90 ||
-              lon < -180 || lon > 180
-            ) {
-              setLocation(DEFAULT_LOCATION);
-              fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-            } else {
-              setLocation({ lat, lon });
-              fetchData(lat, lon);
-            }
-          },
-          () => {
-            setError('Unable to access your location. Showing default location.');
-            setLocation(DEFAULT_LOCATION);
-            fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-          }
-        );
-      } else {
-        setError('Geolocation is not supported by your browser. Showing default location.');
-        setLocation(DEFAULT_LOCATION);
-        fetchData(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usingManual]);
-
-  // Fetch 7-day forecast on location change
-  useEffect(() => {
+  const handleRefresh = () => {
     if (location) {
-      (async () => {
-        const forecastData = await weatherService.getWeatherForecast(location.lat, location.lon);
-        setForecast(forecastData);
-      })();
+      loadWeatherData();
+      loadSatelliteData();
+      toast({
+        title: "Refreshing Data",
+        description: "Getting latest weather and satellite information..."
+      });
     }
-  }, [location]);
+  };
 
-  // Fetch satellite data on location change
-  useEffect(() => {
-    if (location) {
-      (async () => {
-        const data = await satelliteService.getSatelliteData(location.lat, location.lon);
-        setSatelliteData(data);
-      })();
-    }
-  }, [location]);
-
-  // Generate live recent alerts from forecast and satellite data
-  useEffect(() => {
-    const alerts = [];
-    // Weather-based alerts
-    forecast.forEach(day => {
-      if (day.rain >= 80) {
-        alerts.push({
-          id: `rain-${day.day}`,
-          type: 'weather',
-          severity: 'high',
-          message: `${day.day}: Heavy rain expected (${day.rain}%)`,
-          time: 'Upcoming'
-        });
-      } else if (day.rain >= 50) {
-        alerts.push({
-          id: `rain-${day.day}`,
-          type: 'weather',
-          severity: 'medium',
-          message: `${day.day}: Moderate rain expected (${day.rain}%)`,
-          time: 'Upcoming'
-        });
-      }
-      if (day.condition.toLowerCase().includes('storm')) {
-        alerts.push({
-          id: `storm-${day.day}`,
-          type: 'weather',
-          severity: 'high',
-          message: `${day.day}: Storm expected`,
-          time: 'Upcoming'
-        });
-      }
-    });
-    // Satellite-based alerts
-    if (satelliteData) {
-      if (satelliteData.cropHealth < 70) {
-        alerts.push({
-          id: 'crop-health',
-          type: 'disease',
-          severity: 'medium',
-          message: 'Crop health is below optimal. Check for disease or stress.',
-          time: 'Now'
-        });
-      }
-      if (satelliteData.geospatialAnalysis?.healthAnalysis?.stressAreas?.length > 0) {
-        satelliteData.geospatialAnalysis.healthAnalysis.stressAreas.forEach((area, idx) => {
-          alerts.push({
-            id: `stress-${idx}`,
-            type: 'disease',
-            severity: area.severity,
-            message: `Stress area detected (${area.type.replace('_', ' ')}), severity: ${area.severity}`,
-            time: 'Now'
-          });
-        });
-      }
-    }
-    setRecentAlerts(alerts);
-  }, [forecast, satelliteData]);
-
-  // Generate weather alerts based on forecast
-  const weatherAlerts = forecast
-    .filter(day => day.rain >= 70 || day.condition.toLowerCase().includes('storm') || day.condition.toLowerCase().includes('heavy'))
-    .map(day => ({
-      id: day.day,
-      type: day.rain >= 80 ? 'high' : 'medium',
-      message: `${day.day}: ${day.condition} expected. Rain chance: ${day.rain}%`,
-      time: 'Upcoming'
-    }));
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high': return 'text-red-400 bg-red-400/20';
-      case 'medium': return 'text-yellow-400 bg-yellow-400/20';
-      case 'low': return 'text-green-400 bg-green-400/20';
+  const getAlertColor = (type: string) => {
+    switch (type) {
+      case 'warning': return 'text-yellow-400 bg-yellow-400/20';
+      case 'danger': return 'text-red-400 bg-red-400/20';
+      case 'info': return 'text-blue-400 bg-blue-400/20';
       default: return 'text-primary bg-primary/20';
     }
-  };
-
-  const handleQuickAction = (action: string, path: string) => {
-    console.log(`Navigating to ${action} via ${path}`);
-    navigate(path);
   };
 
   return (
@@ -331,225 +124,214 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold hero-text">Farm Dashboard</h1>
+          <h1 className="text-3xl font-bold hero-text">Weather & Satellite</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back! Here's what's happening on your farm today.
+            Real-time weather conditions and satellite monitoring for your farm
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {location ? `Lat: ${location.lat.toFixed(4)}, Lon: ${location.lon.toFixed(4)}` : 'Fetching location...'}
+            {location ? `${location.city || 'Kolkata'}, ${location.state || ''}` : 'Loading location...'}
           </span>
           <Badge variant="outline" className="text-xs">
-            <Calendar className="h-3 w-3 mr-1" />
-            Kharif Season
+            <Satellite className="h-3 w-3 mr-1" />
+            Live Data
           </Badge>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="ml-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
-      {loading && (
-        <div className="my-4 text-center text-blue-500">Loading live data...</div>
-      )}
-      {error && (
-        <div className="my-4 text-center text-red-500">{error}</div>
-      )}
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="agri-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Farm Area</CardTitle>
-            <Leaf className="h-4 w-4 text-primary" />
+      {/* Current Weather */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 agri-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <CloudSun className="h-5 w-5" />
+              <span>Current Weather</span>
+            </CardTitle>
+            <CardDescription>Real-time conditions at your location</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{farmData.totalArea}</div>
-            <p className="text-xs text-muted-foreground">
-              {farmData.currentCrops} active crops
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">Loading weather data...</span>
+              </div>
+            ) : currentWeather ? (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <div className="text-4xl font-bold text-primary mb-2">
+                      {currentWeather.temperature}°C
+                    </div>
+                    <p className="text-lg text-muted-foreground">{currentWeather.condition}</p>
+                  </div>
+                  <div className="text-6xl">⛅</div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 rounded-lg bg-secondary/50">
+                    <Droplets className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground">Humidity</p>
+                    <p className="font-semibold">{currentWeather.humidity}%</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-secondary/50">
+                    <Wind className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground">Wind</p>
+                    <p className="font-semibold">{currentWeather.windSpeed} km/h</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-secondary/50">
+                    <Eye className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground">Visibility</p>
+                    <p className="font-semibold">{currentWeather.visibility} km</p>
+                  </div>
+                  <div className="text-center p-3 rounded-lg bg-secondary/50">
+                    <Thermometer className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground">Pressure</p>
+                    <p className="font-semibold">{currentWeather.pressure} mb</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center space-x-2">
+                    <Sunrise className="h-4 w-4 text-yellow-400" />
+                    <span className="text-sm">Sunrise: {currentWeather.sunrise}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Sunset className="h-4 w-4 text-orange-400" />
+                    <span className="text-sm">Sunset: {currentWeather.sunset}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground">
+                Failed to load weather data. Please try refreshing.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ✅ Satellite Data with Map */}
+        <Card className="agri-card">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Satellite className="h-5 w-5" />
+              <span>Live Farm Map</span>
+            </CardTitle>
+            <CardDescription>Real-time map view of your farm location</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="h-64 rounded-lg overflow-hidden">
+              <iframe
+                title="Farm Location Map"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                  (location?.longitude || 88.3639) - 0.1
+                },${
+                  (location?.latitude || 22.5726) - 0.1
+                },${
+                  (location?.longitude || 88.3639) + 0.1
+                },${
+                  (location?.latitude || 22.5726) + 0.1
+                }&layer=mapnik&marker=${location?.latitude || 22.5726},${location?.longitude || 88.3639}`}
+              ></iframe>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Soil Moisture</span>
+                <span className="font-semibold text-primary">
+                  {satelliteData ? `${Math.round(satelliteData.soilMoisture)}%` : 'Loading...'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Crop Health</span>
+                <span className="font-semibold text-primary">
+                  {satelliteData ? `${Math.round(satelliteData.cropHealth)}%` : 'Loading...'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Vegetation Index</span>
+                <span className="font-semibold text-primary">
+                  {satelliteData ? satelliteData.vegetationIndex.toFixed(2) : 'Loading...'}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground border-t border-border/50 pt-2">
+              Last updated: {satelliteData?.lastUpdated || 'Loading...'}
             </p>
           </CardContent>
         </Card>
-
-        <Card className="agri-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Health Score</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{farmData.healthScore}%</div>
-            <Progress value={farmData.healthScore} className="mt-2" />
-          </CardContent>
-        </Card>
-
-        <Card className="agri-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Temperature</CardTitle>
-            <CloudSun className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{weatherData.temperature}</div>
-            <p className="text-xs text-muted-foreground">{weatherData.condition}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="agri-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Yield Prediction</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-agri-lime">{farmData.yieldPrediction}</div>
-            <p className="text-xs text-muted-foreground">vs last season</p>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Rest: Forecast and Alerts (same as before) */}
       <Card className="agri-card">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Quick Actions</span>
+            <Calendar className="h-5 w-5" />
+            <span>7-Day Forecast</span>
           </CardTitle>
-          <CardDescription>
-            Essential farming tools at your fingertips
-          </CardDescription>
+          <CardDescription>Extended weather outlook for farm planning</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <div key={action.action} className="relative group cursor-pointer">
-                  <div 
-                    className="relative h-48 rounded-xl overflow-hidden bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                    style={{ backgroundImage: `url(${action.image})` }}
-                    onClick={() => handleQuickAction(action.action, action.path)}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Icon className="h-5 w-5 text-primary" />
-                        <span className="font-semibold text-foreground">{action.title}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-3">{action.description}</p>
-                      <Button 
-                        size="sm" 
-                        className="gradient-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleQuickAction(action.action, action.path);
-                        }}
-                      >
-                        Try Now
-                      </Button>
-                    </div>
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+            {forecast.map((day) => (
+              <div key={day.day} className="text-center p-4 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors">
+                <p className="text-sm font-medium mb-2">{day.day}</p>
+                <div className="text-3xl mb-2">{day.icon}</div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">{day.high}°</p>
+                  <p className="text-xs text-muted-foreground">{day.low}°</p>
+                  <div className="flex items-center justify-center space-x-1">
+                    <Droplets className="h-3 w-3 text-blue-400" />
+                    <span className="text-xs">{day.rain}%</span>
                   </div>
                 </div>
-              );
-            })}
+                <p className="text-xs text-muted-foreground mt-1">{day.condition}</p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Alerts & Weather */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="agri-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Recent Alerts</span>
-            </CardTitle>
-            <CardDescription>
-              Important notifications for your farm
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentAlerts.map((alert) => (
-              <div key={alert.id} className="flex items-start space-x-3 p-3 rounded-lg bg-secondary/50">
-                <Badge className={`${getSeverityColor(alert.severity)} border-0`}>
-                  {alert.severity}
-                </Badge>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{alert.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{alert.time}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="agri-card">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CloudSun className="h-5 w-5" />
-              <span>Weather Overview</span>
-            </CardTitle>
-            <CardDescription>
-              Current conditions and 7-day forecast
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Temperature</p>
-                <p className="text-2xl font-bold text-primary">{weatherData.temperature}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Humidity</p>
-                <p className="text-2xl font-bold text-primary">{weatherData.humidity}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Rainfall</p>
-                <p className="text-2xl font-bold text-primary">{weatherData.rainfall}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Condition</p>
-                <p className="text-lg font-medium text-primary">{weatherData.condition}</p>
+      <Card className="agri-card">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <AlertTriangle className="h-5 w-5" />
+            <span>Weather Alerts</span>
+          </CardTitle>
+          <CardDescription>Important weather notifications for your farm</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {alerts.map((alert) => (
+            <div key={alert.id} className="flex items-start space-x-3 p-4 rounded-lg bg-secondary/50">
+              <Badge className={`${getAlertColor(alert.type)} border-0`}>
+                {alert.type}
+              </Badge>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">{alert.title}</h4>
+                <p className="text-sm text-muted-foreground mb-2">{alert.message}</p>
+                <p className="text-xs text-muted-foreground">Valid for: {alert.validUntil}</p>
               </div>
             </div>
-            {/* 7-Day Forecast */}
-            <div className="mt-6">
-              <h4 className="text-md font-semibold mb-2">7-Day Forecast</h4>
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
-                {forecast.map((day) => (
-                  <div key={day.day} className="text-center p-2 rounded-lg bg-secondary/50">
-                    <p className="text-xs font-medium mb-1">{day.day}</p>
-                    <div className="text-xl mb-1">{day.icon}</div>
-                    <p className="text-xs">{day.high}° / {day.low}°</p>
-                    <p className="text-xs text-muted-foreground">{day.condition}</p>
-                    <div className="flex items-center justify-center space-x-1">
-                      <CloudSun className="h-3 w-3 text-blue-400" />
-                      <span className="text-xs">{day.rain}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Weather Alerts */}
-            <div className="mt-6">
-              <h4 className="text-md font-semibold mb-2">Weather Alerts</h4>
-              {forecast.filter(day => day.rain >= 70 || day.condition.toLowerCase().includes('storm') || day.condition.toLowerCase().includes('heavy')).length === 0 ? (
-                <div className="text-muted-foreground text-xs">No severe weather expected in the next 7 days.</div>
-              ) : (
-                forecast.filter(day => day.rain >= 70 || day.condition.toLowerCase().includes('storm') || day.condition.toLowerCase().includes('heavy')).map(day => (
-                  <div key={day.day} className="flex items-center space-x-2 mb-1">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    <span className="text-xs text-yellow-900 font-medium">{day.day}: {day.condition} expected. Rain chance: {day.rain}%</span>
-                  </div>
-                ))
-              )}
-            </div>
-            <Button 
-              className="w-full mt-4 gradient-accent"
-              onClick={() => navigate('/weather')}
-            >
-              View Full Weather Details
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+          <Button className="w-full gradient-primary">Set Custom Weather Alerts</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Dashboard;
+export default Weather;
