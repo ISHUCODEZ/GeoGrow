@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   server: {
-     port: 8080, // Removed to allow Vite to use default or any available port
+     port: 8080, 
     proxy: {
       '/api': 'http://localhost:5000',
     },
